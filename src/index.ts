@@ -6,7 +6,7 @@ dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 import app from "./app";
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);

@@ -1,5 +1,6 @@
 export interface Point {
   id: number;
+  user_id: number;
   name: string;
   description: string;
   rating: number;
@@ -9,4 +10,5 @@ export interface Point {
   amenities: string[];
   address: string;
   location: { lat: number; lng: number };
+  image_url: string;
 }
