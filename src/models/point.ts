@@ -1,6 +1,6 @@
 export interface Point {
   id: number;
-  user_id: number;
+  firebase_uid: string;
   name: string;
   description: string;
   rating: number;

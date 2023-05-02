@@ -10,7 +10,7 @@ const router = express.Router();
 // Routes for point operations
 router.get("/", authMiddleware, placeController.getAllPoints);
 router.get("/user", authMiddleware, placeController.getPointsByUserId);
-router.get("/saved/user", authMiddleware, placeController.getSavedPointsByUserId);
+router.get("/saved/user/:userId", authMiddleware, placeController.getSavedPointsByUserId);
 router.get("/nearby", authMiddleware, placeController.getNearbyPoints);
 router.get("/:pointId", authMiddleware, placeController.getPointById);
 router.post("/save-point", authMiddleware, placeController.savePoint);

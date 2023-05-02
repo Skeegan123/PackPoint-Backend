@@ -40,20 +40,40 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
     res.status(404).json({ message: "User not found" });
     logger.info("User not found with ID: " + userId);
     next(error);
-    // If user not found, return 404 else return 500
-    // if (error.received === 1) {
-    //   res.status(404).json({ message: "User not found" });
-    //   logger.info("User not found with ID: " + userId);
-    // } else {
-    //   res.status(500).json({ message: "Failed to fetch user" });
-    //   logger.error("Failed to fetch user: " + error);
-    //   next(error);
-    // }
+  }
+};
+
+export const checkUserExists = async (req: Request, res: Response, next: NextFunction) => {
+  const userId = req.uid;
+
+  logger.info("Checking if user exists with uid: " + userId);
+
+  if (!userId) {
+    res.status(400).json({ message: "Missing or invalid uid." });
+    logger.warn("Invalid uid");
+    return;
+  }
+
+  try {
+    const user = await db.oneOrNone("SELECT * FROM users WHERE firebase_uid = $1", [userId]);
+
+    if (user) {
+      res.status(200).json({ message: "User exists" });
+      logger.info("User exists");
+    } else {
+      res.status(404).json({ message: "User not found" });
+      logger.info("User not found");
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+    logger.error("Error checking user existence:", error);
+    next(error);
   }
 };
 
 export const createUser = async (req: Request, res: Response, next: NextFunction) => {
   const { phone_number } = req.body;
+  const firebase_uid = req.uid;
 
   logger.info("Creating user");
 
@@ -64,7 +84,10 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
   }
 
   try {
-    const result = await db.one("INSERT INTO users (phone_number) VALUES ($1) RETURNING id", [phone_number]);
+    const result = await db.one("INSERT INTO users (phone_number, firebase_uid) VALUES ($1, $2) RETURNING id", [
+      phone_number,
+      firebase_uid,
+    ]);
     res.status(201).json({ message: "User created", userId: result.id });
     logger.info("User created with ID: " + result.id);
   } catch (error) {

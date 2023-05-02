@@ -38,15 +38,18 @@ export const getAllPoints = async (req: Request, res: Response, next: NextFuncti
 };
 
 export const getPointsByUserId = async (req: Request, res: Response, next: NextFunction) => {
-  logger.info(`Fetching points for user ID: ${req.params.userId}`);
+  logger.info(`Fetching points for uid: ${req.uid}`);
   try {
-    const points = await db.any("SELECT * FROM points WHERE user_id = $1", [req.params.userId]);
+    const points = await db.any(
+      "SELECT id, name, description, rating, noise_level, busy_level, wifi, amenities, address, ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lng, firebase_uid, image_url FROM points WHERE firebase_uid = $1",
+      [req.uid]
+    );
     if (points.length === 0) {
-      res.status(404).json({ message: `No points found for user ID: ${req.params.userId}` });
-      logger.info(`No points found for user ID: ${req.params.userId}`);
+      res.status(404).json({ message: `No points found for uid: ${req.uid}` });
+      logger.info(`No points found for uid: ${req.uid}`);
     } else {
       res.status(200).json(points);
-      logger.info(`Fetched points for user ID: ${req.params.userId}`);
+      logger.info(`Fetched points for uid: ${req.uid}`);
     }
   } catch (error) {
     logger.error("Failed to fetch points from the database: " + error);
@@ -66,11 +69,22 @@ export const getNearbyPoints = async (req: Request, res: Response, next: NextFun
   }
 
   try {
-    const points = await db.any(`SELECT * FROM points WHERE ST_DWithin(location, ST_GeogFromText('POINT(${lng} ${lat})'), 16093);`);
+    const points = await db.any(`
+    SELECT id, name, description, rating, noise_level, busy_level, wifi, amenities, address, ST_Y(location::geometry) AS lat, ST_X(location::geometry) AS lng, firebase_uid, image_url
+    FROM points
+    WHERE ST_DWithin(location, ST_GeogFromText('POINT(${lng} ${lat})'), 16093);
+`);
+
     if (points.length === 0) {
       res.status(404).json({ message: "No nearby points found" });
       logger.info("No nearby points found");
     } else {
+      // Sort points by distance from the user
+      points.sort((a, b) => {
+        const aDistance = Math.sqrt(Math.pow(a.lat - parseFloat(lat as string), 2) + Math.pow(a.lng - parseFloat(lng as string), 2));
+        const bDistance = Math.sqrt(Math.pow(b.lat - parseFloat(lat as string), 2) + Math.pow(b.lng - parseFloat(lng as string), 2));
+        return aDistance - bDistance;
+      });
       res.status(200).json(points);
       logger.info("Fetched nearby points");
     }
@@ -167,25 +181,31 @@ export const getSavedPointsByUserId = async (req: Request, res: Response, next: 
 };
 
 export const createPoint = async (req: Request, res: Response, next: NextFunction) => {
+  logger.info("Creating point");
   const imageFile = req.file;
 
   const name = req.body.name;
-  const description = req.body.description;
-  const address = req.body.address;
+  const description = req.body.description || "";
+  const address = req.body.address || "";
   const rating = parseInt(req.body.rating);
   const noise_level = parseInt(req.body.noise_level);
   const busy_level = parseInt(req.body.busy_level);
   const wifi = req.body.wifi;
-  const amenities = req.body.amenities.split(",");
+  var amenities = req.body.amenities || [];
   const lat = parseFloat(req.body.lat);
   const lng = parseFloat(req.body.lng);
-  const userId = parseInt(req.body.userId);
+
+  if (amenities) {
+    amenities = req.body.amenities.split(",");
+  } else {
+    amenities = ""; // or any default value
+  }
 
   logger.info(`Creating point with name: ${name} at coordinates: ${lat}, ${lng}`);
 
-  if (!name || !description || !address || !rating || !noise_level || !busy_level || !wifi || !amenities || !lat || !lng || !userId) {
+  if (!name || !rating || !noise_level || !busy_level || !wifi || !lat || !lng) {
     res.status(400).json({ message: "Missing or invalid request data." });
-    logger.warn("Invalid data for creating a point");
+    logger.error("Invalid data for creating a point");
     return;
   }
 
@@ -197,13 +217,13 @@ export const createPoint = async (req: Request, res: Response, next: NextFunctio
     }
 
     const result = await db.one(
-      `INSERT INTO points (name, description, rating, noise_level, busy_level, wifi, amenities, address, location, image_url, user_id)
+      `INSERT INTO points (name, description, rating, noise_level, busy_level, wifi, amenities, address, location, image_url, firebase_uid)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, ST_GeogFromText('POINT(${lng} ${lat})'), $9, $10)
        RETURNING id`,
-      [name, description, rating, noise_level, busy_level, wifi, amenities, address, imageUrl, userId]
+      [name, description, rating, noise_level, busy_level, wifi, amenities, address, imageUrl, req.uid]
     );
 
-    res.status(201).json({ message: "Point created", pointId: result.id });
+    res.status(200).json({ message: "Point created", pointId: result.id });
     logger.info("Point created with ID: " + result.id);
   } catch (error) {
     logger.error("Failed to create point: " + error);
