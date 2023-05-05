@@ -1,11 +1,12 @@
 import * as admin from "firebase-admin";
 import logger from "../utils/logger";
+import { as } from "pg-promise";
 
-const https = require("https");
-const fs = require("fs");
-const path = require("path");
+var serviceAccountJson: string = process.env.SERVICE_ACCOUNT as string;
 
-import * as serviceAccount from "../../packpoint-5fba2-firebase-adminsdk-svi4j-d958796224.json";
+var jsonObj = JSON.parse(serviceAccountJson);
+
+let serviceAccount = jsonObj;
 
 try {
   admin.initializeApp({

@@ -56,6 +56,6 @@ const intervalId = setInterval(async () => {
     clearInterval(intervalId);
     exit(1);
   }
-}, 1 * 60 * 1000); // 5 minutes in milliseconds
+}, 5 * 60 * 1000); // 5 minutes in milliseconds
 
 export default db;
