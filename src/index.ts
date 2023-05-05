@@ -1,8 +1,8 @@
-import dotenv from "dotenv";
+// import dotenv from "dotenv";
 import logger from "./utils/logger";
-import path from "path";
+// import path from "path";
 
-dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
+// dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 import app from "./app";
 
