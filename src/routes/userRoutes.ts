@@ -10,6 +10,6 @@ router.get("/exists", authMiddleware, userController.checkUserExists);
 router.get("/:userId", authMiddleware, userController.getUserById);
 router.post("/", authMiddleware, userController.createUser);
 router.put("/:userId", authMiddleware, userController.updateUser);
-router.delete("/:userId", authMiddleware, userController.deleteUser);
+router.delete("/", authMiddleware, userController.deleteUser);
 
 export default router;

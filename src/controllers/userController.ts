@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import db from "../config/db";
 import logger from "../utils/logger";
 import { User } from "../models/user";
-import { log } from "console";
+import admin from "../utils/firebaseAdmin";
 
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
   logger.info("Fetching all users");
@@ -125,25 +125,27 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
 };
 
 export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
-  const id = parseInt(req.params.userId);
+  const uid = req.uid;
 
-  logger.info("Deleting user with ID: " + id);
+  logger.info("Deleting user with UID: " + uid);
 
-  if (!id) {
-    res.status(400).json({ message: "Missing or invalid user ID." });
-    logger.warn("Invalid user ID");
+  if (!uid) {
+    res.status(400).json({ message: "Missing or invalid uid." });
+    logger.warn("Invalid uid");
     return;
   }
 
   try {
-    const result = await db.result("DELETE FROM users WHERE id = $1", [id]);
+    const result = await db.result("DELETE FROM users WHERE firebase_uid = $1", [uid]);
+
+    admin.auth().deleteUser(uid);
 
     if (result.rowCount > 0) {
       res.status(200).json({ message: "User deleted" });
-      logger.info("User deleted with ID: " + id);
+      logger.info("User deleted with UID: " + uid);
     } else {
       res.status(404).json({ message: "User not found" });
-      logger.info("User not found with ID: " + id);
+      logger.info("User not found with UID: " + uid);
     }
   } catch (error) {
     logger.error("Failed to delete user: " + (error as Error).message);
